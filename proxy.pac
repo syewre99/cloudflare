@@ -1,15 +1,27 @@
 function FindProxyForURL(url, host) {
-  // List of domains to bypass proxy
-  var direct = ["localhost", "127.0.0.1"];
+    // List of Google DNS servers
+    var googleDnsServers = ["8.8.8.8", "8.8.4.4"];
 
-  // Bypass proxy for local addresses
-  for (var i = 0; i < direct.length; i++) {
-    if (shExpMatch(host, direct[i])) {
-      return "DIRECT";
+    // Function to check if the host resolves to a Google DNS server
+    function isGoogleDns(host) {
+        var resolvedIp = dnsResolve(host);
+        return googleDnsServers.indexOf(resolvedIp) !== -1;
     }
-  }
 
-  // All other requests go through Cloudflare proxy
-  // Replace 'proxy.example.com' and '8080' with your Cloudflare proxy address and port
-  return "PROXY proxy.example.com:8080; DIRECT";
+    // Direct access for local network addresses
+    if (isPlainHostName(host) || 
+        shExpMatch(host, "*.local") || 
+        isInNet(dnsResolve(host), "10.0.0.0", "255.0.0.0") || 
+        isInNet(dnsResolve(host), "172.16.0.0", "255.240.0.0") || 
+        isInNet(dnsResolve(host), "192.168.0.0", "255.255.0.0")) {
+        return "DIRECT";
+    }
+
+    // Use Google DNS for all other requests
+    if (isGoogleDns(host)) {
+        return "DIRECT";
+    }
+
+    // Default proxy settings
+    return "PROXY yourproxyserver:8080; DIRECT";
 }
